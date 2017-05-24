@@ -7,19 +7,18 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from feature_extraction import extract_features
 
-sample_size = 500
-color_space = 'RGB' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+sample_size = 4000
+color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
 orient = 9  # HOG orientations
 pix_per_cell = 8 # HOG pixels per cell
 cell_per_block = 2 # HOG cells per block
-hog_channel = 0 # Can be 0, 1, 2, or "ALL"
+hog_channel = "ALL" # Can be 0, 1, 2, or "ALL"
 spatial_size = (16, 16) # Spatial binning dimensions
 hist_bins = 16    # Number of histogram bins
 hist_range = (0, 1)
-spatial_feat = True # Spatial features on or off
+spatial_feat = False # Spatial features on or off
 hist_feat = True # Histogram features on or off
 hog_feat = True # HOG features on or off
-y_start_stop = [None, None] # Min and max in y to search in slide_window()
 
 
 # Read in cars and notcars
@@ -75,4 +74,4 @@ print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
 
 # Save
 with open("model.p", "wb") as f:
-    pickle.dump([color_space, orient, pix_per_cell, cell_per_block, hog_channel, spatial_size, hist_bins, hist_range, spatial_feat, hist_feat, hog_feat, y_start_stop, svc, X_scaler], f)
+    pickle.dump([color_space, orient, pix_per_cell, cell_per_block, hog_channel, spatial_size, hist_bins, hist_range, spatial_feat, hist_feat, hog_feat, svc, X_scaler], f)

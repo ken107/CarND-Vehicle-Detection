@@ -7,7 +7,7 @@ from window_search import *
 
 
 with open("model.p", "rb") as f:
-    color_space, orient, pix_per_cell, cell_per_block, hog_channel, spatial_size, hist_bins, hist_range, spatial_feat, hist_feat, hog_feat, y_start_stop, svc, X_scaler = pickle.load(f)
+    color_space, orient, pix_per_cell, cell_per_block, hog_channel, spatial_size, hist_bins, hist_range, spatial_feat, hist_feat, hog_feat, svc, X_scaler = pickle.load(f)
 
 def draw_boxes(img, bboxes, color, thick):
     for bbox in bboxes:
@@ -19,7 +19,7 @@ def process(image):
 
     windows = slide_window(image,
         x_start_stop=[None, None],
-        y_start_stop=y_start_stop,
+        y_start_stop=[360, None],
         xy_window=(96, 96),
         xy_overlap=(0.5, 0.5))
 
