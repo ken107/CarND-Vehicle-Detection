@@ -90,6 +90,5 @@ def extract_features(imgs, color_space, spatial_size, hist_bins, hist_range, ori
         image = mpimg.imread(file)
         file_features = single_img_features(image, color_space, spatial_size, hist_bins, hist_range, orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_feat, hog_feat)
         features.append(file_features)
-        print("Extracting features: {}/{}\r".format(len(features), len(imgs)), end="", flush=True)
-    print()
+        if len(features) % 1000 == 0: print("Extracting features: {}/{}\r".format(len(features), len(imgs)))
     return features
