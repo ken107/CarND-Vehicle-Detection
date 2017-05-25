@@ -42,6 +42,22 @@ def color_hist(img, nbins, bins_range):
     return hist_features
 
 
+def convert_color(img, color_space):
+    if color_space == 'RGB':
+        feature_image = np.copy(img)
+    elif color_space == 'HSV':
+        feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    elif color_space == 'LUV':
+        feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
+    elif color_space == 'HLS':
+        feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    elif color_space == 'YUV':
+        feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+    elif color_space == 'YCrCb':
+        feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+    return feature_image
+
+
 # Define a function to extract features from a single image window
 # This function is very similar to extract_features()
 # just for a single image rather than list of images
@@ -49,18 +65,7 @@ def single_img_features(img, color_space, spatial_size, hist_bins, hist_range, o
     assert(img.dtype == np.uint8 and hist_range == (0,256) or img.dtype == np.float32 and hist_range == (0,1))
     img_features = []
     #2) Apply color conversion if other than 'RGB'
-    if color_space != 'RGB':
-        if color_space == 'HSV':
-            feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-        elif color_space == 'LUV':
-            feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
-        elif color_space == 'HLS':
-            feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
-        elif color_space == 'YUV':
-            feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
-        elif color_space == 'YCrCb':
-            feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
-    else: feature_image = np.copy(img)
+    feature_image = convert_color(img, color_space)
     #3) Compute spatial features if flag is set
     if spatial_feat == True:
         spatial_features = bin_spatial(feature_image, size=spatial_size)
