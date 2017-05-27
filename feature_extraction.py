@@ -57,13 +57,13 @@ def grid(img, pixels_per_cell, cells_per_block, hog_orientations, color_hist_nbi
         ]
 
         # calculate bbox
-        bbox = [
+        bbox = np.array([
             (cell_x * pixels_per_cell, cell_y * pixels_per_cell),
             ((cell_x + window_shape[1]) * pixels_per_cell, (cell_y + window_shape[0]) * pixels_per_cell)
-        ]
+        ])
 
         # get image region inside window
-        window_img = img[bbox[0][1]:bbox[1][1], bbox[0][0]:bbox[1][0]]
+        window_img = img[bbox[0,1]:bbox[1,1], bbox[0,0]:bbox[1,0]]
 
         # compute color histogram
         channel1_hist, edges = np.histogram(window_img[:,:,0], bins=color_hist_nbins, range=(0,1))

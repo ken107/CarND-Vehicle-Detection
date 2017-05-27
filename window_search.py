@@ -17,11 +17,13 @@ def search_cars(img, y_start_stop, scale, color_space, pixels_per_cell, cells_pe
 
     # slide windows
     bboxes = []
-    for cell_x in range(nwindows[1]):
-        for cell_y in range(nwindows[0]):
+    for y in range(nwindows[0]):
+        for x in range(nwindows[1]):
+            cell_y, cell_x = np.array([y, x]) * cells_per_step
             bbox, features = get_window(cell_x, cell_y, window_shape)
+            bbox = (bbox / scale).astype(np.int) + np.array([0, y_start_stop[0]])
             test_features = X_scaler.transform(features.reshape(1, -1))
             if svc.predict(test_features):
-                bboxes.append((bbox / scale).astype(np.uint8))
+                bboxes.append(bbox)
 
     return bboxes
