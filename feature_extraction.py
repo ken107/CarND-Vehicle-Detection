@@ -1,47 +1,6 @@
-import matplotlib.image as mpimg
-import numpy as np
 import cv2
+import numpy as np
 from skimage.feature import hog
-
-
-# Define a function to return HOG features and visualization
-def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis, feature_vec):
-    # Call with two outputs if vis==True
-    if vis == True:
-        features, hog_image = hog(img, orientations=orient,
-                                  pixels_per_cell=(pix_per_cell, pix_per_cell),
-                                  cells_per_block=(cell_per_block, cell_per_block),
-                                  block_norm='L1-sqrt',
-                                  transform_sqrt=True,
-                                  visualise=vis, feature_vector=feature_vec)
-        return features, hog_image
-    # Otherwise call with one output
-    else:
-        features = hog(img, orientations=orient,
-                       pixels_per_cell=(pix_per_cell, pix_per_cell),
-                       cells_per_block=(cell_per_block, cell_per_block),
-                       block_norm='L1-sqrt',
-                       transform_sqrt=True,
-                       visualise=vis, feature_vector=feature_vec)
-        return features
-
-
-# Define a function to compute binned color features
-def bin_spatial(img, size):
-    features = cv2.resize(img, size).ravel()
-    return features
-
-
-# Define a function to compute color histogram features
-# NEED TO CHANGE bins_range if reading .png files with mpimg!
-def color_hist(img, nbins, bins_range):
-    channel1_hist = np.histogram(img[:,:,0], bins=nbins, range=bins_range)
-    channel2_hist = np.histogram(img[:,:,1], bins=nbins, range=bins_range)
-    channel3_hist = np.histogram(img[:,:,2], bins=nbins, range=bins_range)
-    # Concatenate the histograms into a single feature vector
-    hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
-    # Return the individual histograms, bin_centers and feature vector
-    return hist_features
 
 
 def convert_color(img, color_space):
@@ -60,42 +19,63 @@ def convert_color(img, color_space):
     return feature_image
 
 
-# Define a function to extract features from a single image window
-# This function is very similar to extract_features()
-# just for a single image rather than list of images
-def single_img_features(img, color_space, spatial_size, hist_bins, hist_range, orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_feat, hog_feat):
-    assert(img.dtype == np.uint8 and hist_range == (0,256) or img.dtype == np.float32 and hist_range == (0,1))
-    img_features = []
-    #2) Apply color conversion if other than 'RGB'
-    feature_image = convert_color(img, color_space)
-    #3) Compute spatial features if flag is set
-    if spatial_feat == True:
-        spatial_features = bin_spatial(feature_image, size=spatial_size)
-        img_features.append(spatial_features)
-    #5) Compute histogram features if flag is set
-    if hist_feat == True:
-        hist_features = color_hist(feature_image, nbins=hist_bins, bins_range=hist_range)
-        img_features.append(hist_features)
-    #7) Compute HOG features if flag is set
-    if hog_feat == True:
-        if hog_channel == 'ALL':
-            hog_features = []
-            for channel in range(feature_image.shape[2]):
-                hog_features.extend(get_hog_features(feature_image[:,:,channel], orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True))
-        else:
-            hog_features = get_hog_features(feature_image[:,:,hog_channel], orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True)
-        img_features.append(hog_features)
-    return np.concatenate(img_features)
+def grid(img, pixels_per_cell, cells_per_block, hog_orientations, color_hist_nbins):
+    # ensure normalized image
+    assert(img.dtype == np.float32)
 
+    # compute shape & block-shape
+    shape = [
+        img.shape[0] // pixels_per_cell,
+        img.shape[1] // pixels_per_cell
+    ]
+    nblocks = [
+        shape[0] - cells_per_block + 1,
+        shape[1] - cells_per_block + 1
+    ]
 
-# Define a function to extract features from a list of images
-# Have this function call bin_spatial() and color_hist()
-def extract_features(imgs, color_space, spatial_size, hist_bins, hist_range, orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_feat, hog_feat):
-    features = []
-    for file in imgs:
-        file_features = []
-        image = mpimg.imread(file)
-        file_features = single_img_features(image, color_space, spatial_size, hist_bins, hist_range, orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_feat, hog_feat)
-        features.append(file_features)
-        if len(features) % 1000 == 0: print("Extracting features: {}/{}\r".format(len(features), len(imgs)))
-    return features
+    # compute hog for entire image
+    hog_map = np.array([
+        hog(img[:,:,0], orientations=hog_orientations, pixels_per_cell=(pixels_per_cell, pixels_per_cell), cells_per_block=(cells_per_block, cells_per_block), block_norm='L1', transform_sqrt=True, feature_vector=False),
+        hog(img[:,:,1], orientations=hog_orientations, pixels_per_cell=(pixels_per_cell, pixels_per_cell), cells_per_block=(cells_per_block, cells_per_block), block_norm='L1', transform_sqrt=True, feature_vector=False),
+        hog(img[:,:,2], orientations=hog_orientations, pixels_per_cell=(pixels_per_cell, pixels_per_cell), cells_per_block=(cells_per_block, cells_per_block), block_norm='L1', transform_sqrt=True, feature_vector=False)
+    ])
+
+    # check hog shape
+    assert(np.array_equal(hog_map.shape, [3, nblocks[0], nblocks[1], cells_per_block, cells_per_block, hog_orientations]))
+
+    ## function to get a window inside the grid
+    ## returns bounding box (pixels) and feature vector
+    def get_window(cell_x, cell_y, window_shape, is_complete_image=False):
+        # make sure know what we're doing
+        if is_complete_image:
+            assert(np.array_equal(window_shape, shape))
+
+        # calculate number of blocks
+        window_nblocks = [
+            window_shape[0] - cells_per_block + 1,
+            window_shape[1] - cells_per_block + 1
+        ]
+
+        # calculate bbox
+        bbox = [
+            (cell_x * pixels_per_cell, cell_y * pixels_per_cell),
+            ((cell_x + window_shape[1]) * pixels_per_cell, (cell_y + window_shape[0]) * pixels_per_cell)
+        ]
+
+        # get image region inside window
+        window_img = img[bbox[0][1]:bbox[1][1], bbox[0][0]:bbox[1][0]]
+
+        # compute color histogram
+        channel1_hist, edges = np.histogram(window_img[:,:,0], bins=color_hist_nbins, range=(0,1))
+        channel2_hist, edges = np.histogram(window_img[:,:,1], bins=color_hist_nbins, range=(0,1))
+        channel3_hist, edges = np.histogram(window_img[:,:,2], bins=color_hist_nbins, range=(0,1))
+
+        # extract window's hog features
+        hog_features = hog_map[:, cell_y:cell_y+window_nblocks[0], cell_x:cell_x+window_nblocks[1]].ravel()
+
+        # feature vector
+        features = np.concatenate([channel1_hist, channel2_hist, channel3_hist, hog_features])
+        return bbox, features
+
+    # return grid's shape and get_window function
+    return shape, get_window
